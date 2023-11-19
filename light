@@ -1,0 +1,113 @@
+Installation the light node :
+
+
+1) Preparing the server:
+
+sudo apt -q update
+sudo apt -qy install curl git jq lz4 build-essential
+sudo apt -qy upgrade
+
+
+
+2) Installs Go:
+
+ver="1.19.1" 
+cd $HOME 
+wget "https://golang.org/dl/go$ver.linux-amd64.tar.gz" 
+sudo rm -rf /usr/local/go 
+sudo tar -C /usr/local -xzf "go$ver.linux-amd64.tar.gz" 
+rm "go$ver.linux-amd64.tar.gz"
+echo "export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+
+
+
+
+3) Check Go version: 
+
+go version
+
+
+4) Download the binary file:
+
+cd $HOME 
+rm -rf celestia-node 
+git clone https://github.com/celestiaorg/celestia-node.git 
+cd celestia-node/ 
+git checkout tags/v0.8.0 
+make build 
+make install 
+make cel-key
+
+
+5) Check Celestia version:
+
+celestia version
+
+
+6) Create key for node (change “f5nodes” when configuring):
+*Create a new key
+
+./cel-key add padra --keyring-backend test --node.type light --p2p.network blockspacerace
+
+===save your addrress and memonic===
+
+*Restore an existing key using a mnemonic (optional) :
+
+./cel-key add padra --keyring-backend test --node.type light --p2p.network blockspacerace --recover
+
+*Then we can go to #faucet channel for “Blockspace Race” and request test tokens in format: 
+
+$request <celestia1ux3y......> 
+
+
+7) Initialize Light node (change “f5nodes” when configuring):
+
+celestia light init \
+  --keyring.accname padra \
+  --p2p.network blockspacerace
+
+8) Create a service file:
+
+sudo tee <<EOF >/dev/null /etc/systemd/system/celestia-lightd.service
+[Unit]
+Description=celestia-lightd Light Node
+After=network-online.target
+ 
+[Service]
+User=$USER
+ExecStart=/usr/local/bin/celestia light start --core.ip https://rpc-blockspacerace.pops.one/ --core.grpc.port 9090 --gateway --gateway.addr localhost --gateway.port 26659 --p2p.network blockspacerace
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=4096
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+
+
+9) Start the node:
+
+sudo systemctl enable celestia-lightd
+sudo systemctl start celestia-lightd && sudo journalctl -u celestia-lightd.service -f
+
+
+
+
+
+Update
+در صورتی که توی سایت tiascan نمیتونید ایدیتونو پیدا کنین دستورات پایینو بزنین در غیر اینصورت اگر بود این مرحله رو ادامه ندید
+
+
+systemctl stop celestia-lightd
+
+celestia light start --core.ip https://rpc-blockspacerace.pops.one --p2p.network blockspacerace --metrics.tls=false --metrics --metrics.endpoint otel.celestia.tools:4318
+
+اینجا اگه لاگ استارت شد کنترل C بزنین خارج شید
+
+nano /etc/systemd/system/celestia-lightd.service
+
+
+دستورات زیر کپی کنید
+
+--metrics.tls=false --metrics --metrics.endpoint otel.celestia.tools:4318
